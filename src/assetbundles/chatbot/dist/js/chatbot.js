@@ -141,19 +141,20 @@ const addMessage = (message, type = 'user', pauseExecution = false) => {
 const setupResponseType = (type = text, options = []) => {
     if (type === 'redirect') {
         // delay for 3 seconds before redirecting
-        addMessage(`You will be redirected to ${options[0]} in 3 seconds.`, 'bot');
+        addMessage(`You will be redirected in 3 seconds.`, 'bot');
         setTimeout(() => {
             window.location.href = options[0];
         }, 3000);
          // Redirect to the specified URL
     } else if (type === 'text') {
+        chamberlain.element.querySelector('[data-chat-response-instruction-text]').innerHTML = 'Type Below'; //Choose a response
         chamberlain.element.querySelector('[data-chat-text-input] input').classList.remove('hidden');
         chamberlain.element.querySelector('[data-chat-text-input] input').disabled = false;
         chamberlain.element.querySelector('[data-chat-text-input] input').focus();
         resetChatHeight();
 
     }  else if (type === 'dropdowns') {
-        // put the dropdowns in the chat text input
+        chamberlain.element.querySelector('[data-chat-response-instruction-text]').innerHTML = 'Choose a response';
         chamberlain.element.querySelector('[data-chat-text-buttons-container]').classList.remove('hidden');
         const dropdownContainer = chamberlain.element.querySelector('[data-chat-text-buttons]');
         dropdownContainer.innerHTML = ''; // Clear existing buttons
@@ -184,6 +185,7 @@ const setupResponseType = (type = text, options = []) => {
             resetChatHeight();
         });
     } else {
+        chamberlain.element.querySelector('[data-chat-response-instruction-text]').innerHTML = 'Choose a response';
         chamberlain.element.querySelector('[data-chat-text-buttons-container]').classList.remove('hidden');
         // Clear any existing buttons
         options.forEach(option => {
