@@ -68,8 +68,7 @@ const initiateChat = () => {
         return;
     }
     chamberlain.chatInitiated = true;
-
-    handleResponse(0, true);
+    handleResponse(true);
 };
 
 
@@ -160,22 +159,23 @@ const setupResponseType = (type = text, options = []) => {
     }
 };
 
-const handleResponse = (state = null, skipDelay = false) => {
+const handleResponse = (skipDelay = false) => {
     lockChatInteraction();
     const url = window.location.protocol + '//' + window.location.host + '/actions/_chamberlain/chat/';
-    fetch( url, {
+    fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({state, skipDelay}),
+        body: JSON.stringify({state: chamberlain.state, skipDelay}),
     })
         .then(res => res.json())
         .then(async data => {
             if (data.status === 'success') {
+                console.log('Response received:', data);
                 chamberlain.state = data.currentState; // Update the state
-                await addMessage(data.message, 'bot');
-                setupResponseType(data.responseType, data.options);
+                await addMessage(data.response.message, 'bot');
+                setupResponseType(data.response.responseType, data.response.options);
             } else {
                 await addMessage('Sorry, I could not process your request.', 'bot');
             }

@@ -7,6 +7,7 @@ use craft\web\Controller;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use RuntimeException;
 use yii\web\Response;
 
 class ChatController extends Controller
@@ -16,7 +17,7 @@ class ChatController extends Controller
 
     public function actionIndex(): Response
     {
-        $previousState = Craft::$app->getRequest()->getParam('previousState');
+        $previousState = Craft::$app->getRequest()->getParam('state');
         $lambdaResponse = $this->makeLambdaRequest($previousState);
 
         $skipDelay = Craft::$app->getRequest()->getParam('skipDelay', false);
@@ -26,8 +27,8 @@ class ChatController extends Controller
 
         return $this->asJson([
                 'status' => 'success',
-                'response' => $lambdaResponse['response'],
-                'currentState' => $lambdaResponse['currentState'],
+                'response' => $lambdaResponse['data']['response'],
+                'currentState' => $lambdaResponse['data']['currentState'],
             ]
         );
     }
@@ -65,7 +66,7 @@ class ChatController extends Controller
 
             // Check if JSON decoding was successful
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new \RuntimeException('JSON decode error: ' . json_last_error_msg());
+                throw new RuntimeException('JSON decode error: ' . json_last_error_msg());
             }
 
             return [
