@@ -136,6 +136,7 @@ const setupResponseType = (type = text, options = []) => {
         window.location.href = options[0]; // Redirect to the specified URL
     } else if (type === 'text') {
         chamberlain.element.querySelector('[data-chat-text-input] input').classList.remove('hidden');
+        chamberlain.element.querySelector('[data-chat-text-input] input').disabled = false;
         chamberlain.element.querySelector('[data-chat-text-input] input').focus();
     } else {
         chamberlain.element.querySelector('[data-chat-text-buttons-container]').classList.remove('hidden');
