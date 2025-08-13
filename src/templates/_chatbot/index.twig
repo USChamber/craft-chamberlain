@@ -1,0 +1,39 @@
+<template id="ChamberlainTemplate">
+    <div id="Chamberlain" class="closed">
+        <div data-chat-logo-img></div>
+        <div data-chat-logo-close class="hidden">&times;</div>
+        <div data-chat-internal-content>
+            <div data-chat-window></div>
+            <div data-chat-interaction>
+                <div data-chat-text-buttons-container class="hidden">
+                    <div data-chat-response-instructions>
+                        <hr/>
+                        Choose a response
+                        <hr/>
+                    </div>
+                    <div data-chat-text-buttons></div>
+                </div>
+                <div data-chat-text-input>
+                    <input class="hidden" type="text" placeholder="Type your message here...">
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+    // retry for up to 5 seconds waiting for `chamberlain` global to be defined
+    (function waitForChamberlain() {
+        if (typeof chamberlain === 'undefined') {
+            setTimeout(waitForChamberlain, 100);
+        } else {
+            window.chamberlain.config = {
+                containerElementSelector: '{{ containerElementSelector }}',
+
+            };
+            window.chamberlain.init();
+        }
+    })();
+
+
+</script>

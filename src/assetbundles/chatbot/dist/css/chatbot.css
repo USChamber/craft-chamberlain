@@ -1,0 +1,145 @@
+.article-body-right {
+    width: auto !important;
+}
+
+#Chamberlain {
+    --border-radius: 18px;
+    --background: #002452;
+
+    position: sticky;
+    top: 200px;
+    right: 24px;
+    width: 360px !important;
+    max-width: 360px !important;
+    height: 450px;
+    transition: .35s ease-in-out;
+    z-index: 1000;
+}
+
+#Chamberlain.closed {
+    width: 60px !important;
+    max-width: 60px !important;
+    height: 60px !important;
+    transition: .35s ease-in-out;
+}
+
+#Chamberlain [data-chat-internal-content] {
+    background: var(--background);
+    color: #fff;
+
+    border-radius: var(--border-radius);
+    padding: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.35);
+    position: relative;
+}
+
+#Chamberlain.closed [data-chat-internal-content] {
+    padding: 0 !important;
+}
+
+#Chamberlain [data-chat-logo-img] {
+    width: 75px;
+    height: 75px;
+    background-size: contain;
+    background-image: url('https://www.uschamber.com/assets/images/chamberlain.png');
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+#Chamberlain [data-chat-logo-close] {
+    width: 24px;
+    height: 24px;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    cursor: pointer;
+}
+
+#Chamberlain.closed [data-chat-internal-content] {
+    display: none;
+}
+
+[data-chat-window] {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    max-height: 300px;
+    margin-bottom: 160px;
+}
+
+[data-chat-window] [data-chat-bubble] {
+    width: auto;
+    max-width: 60%;
+    background-color: #E9E9EB;
+    color: #000;
+    border-radius: 12px;
+    padding: 18px;
+}
+
+[data-chat-window] [data-chat-user] {
+    background-color: #3E75BC;
+    color: #fff;
+    align-self: flex-end;
+}
+
+[data-chat-interaction] {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px;
+    background: var(--background);
+    border-bottom-left-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+}
+
+[data-chat-response-instructions] {
+    font-size: 10px;
+    color: #fff;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+}
+
+[data-chat-response-instructions] hr {
+    flex: 1;
+    border: none;
+    border-top: 1px solid #fff;
+    margin: 0 8px;
+}
+
+[data-chat-text-buttons] {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-direction: column;
+    font-size: 14px;
+
+}
+
+[data-chat-text-button] {
+    background-color: #3E75BC;
+    color: #fff;
+    border-radius: 12px;
+    padding: 8px 16px;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.3s ease;
+}
+
+[data-chat-text-button]:hover {
+    background-color: #2C5A8F;
+}
+
+[data-chat-text-input] input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    background-color: #E9E9EB;
+    color: #000;
+    margin-top: 8px;
+    font-size: 18px;
+}
