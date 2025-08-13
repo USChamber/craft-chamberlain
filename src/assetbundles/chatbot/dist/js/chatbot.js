@@ -10,7 +10,7 @@ chamberlain.init = () => {
     container.appendChild(template.content.cloneNode(true));
     chamberlain.element = document.getElementById('Chamberlain');
 
-// fix some height issues that might occur
+    // fix some height issues that might occur
     const articleBodyCenter = document.querySelector('.article-body-center');
     const articleBodyRight = document.querySelector('.article-body-right');
     if (articleBodyCenter && articleBodyRight) {
@@ -34,7 +34,7 @@ chamberlain.init = () => {
             return;
         }
         const scrollPosition = window.scrollY + window.innerHeight;
-        const articleBodyCenterHeight = articleBodyCenter.offsetHeight;
+        const articleBodyCenterHeight = document.querySelector(chamberlain.config.articleTextSelector).offsetHeight;
 
         if (scrollPosition > articleBodyCenterHeight / 1.5) {
             openChatWindow(false);
@@ -69,7 +69,7 @@ const initiateChat = () => {
     }
     chamberlain.chatInitiated = true;
 
-    handleResponse('initiation', true);
+    handleResponse(0, true);
 };
 
 
@@ -94,7 +94,7 @@ const addMessage = (message, type = 'user') => {
     return new Promise((resolve) => {
         console.log('Adding message:', message, 'of type:', type);
         if (type === 'user') {
-            handleResponse(message);
+            handleResponse(chamberlain.state);
         }
         const messageContainer = chamberlain.element.querySelector('[data-chat-window]');
         const messageElement = document.createElement('div');
@@ -133,7 +133,6 @@ const addMessage = (message, type = 'user') => {
 };
 
 const setupResponseType = (type = text, options = []) => {
-    console.log('setting up response type:', type, options);
     if (type === 'redirect') {
         window.location.href = options[0]; // Redirect to the specified URL
     } else if (type === 'text') {
@@ -143,7 +142,6 @@ const setupResponseType = (type = text, options = []) => {
         chamberlain.element.querySelector('[data-chat-text-buttons-container]').classList.remove('hidden');
         // Clear any existing buttons
         options.forEach(option => {
-            console.log('adding option button:', option);
             const button = document.createElement('button');
             button.setAttribute('data-chat-text-button', '');
             button.textContent = option;
@@ -156,25 +154,26 @@ const setupResponseType = (type = text, options = []) => {
             setTimeout(() => {
                 chamberlain.element.querySelector('[data-chat-text-buttons]').appendChild(button);
                 const chatInteractionHeight = chamberlain.element.querySelector('[data-chat-interaction]').offsetHeight;
-                console.log('Chat interaction height:', chatInteractionHeight);
                 chamberlain.element.querySelector('[data-chat-window]').style.marginBottom = `${chatInteractionHeight}px`;
             }, variableTime(400, 1500));
         });
     }
 };
 
-const handleResponse = (message = '', skipDelay = false) => {
+const handleResponse = (state = null, skipDelay = false) => {
     lockChatInteraction();
-    fetch('https://uschamber.ddev.site/actions/_chamberlain/chat/', {
+    const url = window.location.protocol + '//' + window.location.host + '/actions/_chamberlain/chat/';
+    fetch( url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({message, skipDelay}),
+        body: JSON.stringify({state, skipDelay}),
     })
         .then(res => res.json())
         .then(async data => {
             if (data.status === 'success') {
+                chamberlain.state = data.currentState; // Update the state
                 await addMessage(data.message, 'bot');
                 setupResponseType(data.responseType, data.options);
             } else {

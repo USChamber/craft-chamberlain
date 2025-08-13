@@ -62,6 +62,7 @@ class Plugin extends BasePlugin
             '_chamberlain/_chatbot/index',
             [
                 'containerElementSelector' => $pluginConfig['chatbot']['containerElementSelector'] ?? '.article-body-right',
+                'articleTextSelector' => $pluginConfig['chatbot']['articleTextSelector'] ?? '.article-body-center',
             ]
         );
         Craft::$app->getView()->registerHtml($html);

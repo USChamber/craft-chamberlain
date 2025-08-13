@@ -4,6 +4,9 @@ namespace USChamber\Chamberlain\controllers;
 
 use Craft;
 use craft\web\Controller;
+use Exception;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use yii\web\Response;
 
 class ChatController extends Controller
@@ -13,65 +16,79 @@ class ChatController extends Controller
 
     public function actionIndex(): Response
     {
-//        $entryId = Craft::$app->getRequest()->getParam('entryId');
-        $message = Craft::$app->getRequest()->getParam('message');
+        $previousState = Craft::$app->getRequest()->getParam('previousState');
+        $lambdaResponse = $this->makeLambdaRequest($previousState);
+
         $skipDelay = Craft::$app->getRequest()->getParam('skipDelay', false);
         if (!$skipDelay) {
             sleep(1);
         }
-        if (empty($message)) {
-            return $this->asJson([
-                'error' => 'Message cannot be empty.',
-            ]);
-        }
-        $responseKey = $this->mapResponses[$message] ?? null;
-        $response = $this->responses[$responseKey] ?? null;
-        if (!$response) {
-            return $this->asJson([
-                'error' => 'No response found for the given message.',
-                'message' => $message,
-            ]);
-        }
 
-        return $this->asJson(array_merge(
-            $response,
-            [
+        return $this->asJson([
                 'status' => 'success',
+                'response' => $lambdaResponse['response'],
+                'currentState' => $lambdaResponse['currentState'],
             ]
-        ));
+        );
     }
 
-    public array $mapResponses = [
-        'initiation' => 'response1',
-        'I want to know more about how tariffs might affect my business' => 'redirect1',
-    ];
+    private function makeLambdaRequest($previousState = null): array
+    {
+        // Create a Guzzle HTTP client
+        $client = new Client();
 
-    public array $responses = [
-        'response1' => [
-            'message' => 'Hello! How can I assist you today?',
-            'options' => [
-                'I want the latest information on tariffs',
-                'I want to know more about how tariffs might affect my business',
-                'I want more general information about recent policy issues',
-            ],
-            'responseType' => 'options',
-        ],
-        'redirect1' => [
-            'responseType' => 'redirect',
-            'message' => 'Ok, let\'s check it out on our sister-site, CO—.',
-            'options' => // this is stupid but it works with the frontend for now
-                [
-                    'https://co.ddev.site/events/small-business-update/small-business-update-one-big-beautiful-bill-taxes-and-tariffs'
-                ],
-        ],
-        'response2' => [
-            'message' => 'I’m here to help you make the most of our resources and tools for businesses. Which would you like to explore next?',
-            'options' => [
-                'More content on policy issues affecting my business',
-                'Opportunities to share my business story with the U.S. Chamber',
-                'Free virtual events for small businesses',
-            ],
-            'responseType' => 'options',
-        ]
-    ];
+        // Base URL
+        $baseUrl = 'https://m4jaysd4n5kt4cf5dbdesip3240ibtuj.lambda-url.us-east-1.on.aws/';
+
+        try {
+            $options = [
+                'timeout' => 30, // 30 second timeout
+                'headers' => [
+                    'Accept' => 'application/json',
+                    'User-Agent' => 'PHP-Guzzle-Client'
+                ]
+            ];
+            // Add query parameters if needed
+            if (!empty($previousState)) {
+                $options['query'] = [
+                    'previousState' => $previousState
+                ];
+            }
+            // Make the GET request with query parameters
+            $response = $client->request('GET', $baseUrl, $options);
+
+            // Get the response body as a string
+            $jsonResponse = $response->getBody()->getContents();
+
+            // Convert JSON to PHP array
+            $arrayResponse = json_decode($jsonResponse, true, 512, JSON_THROW_ON_ERROR);
+
+            // Check if JSON decoding was successful
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new \RuntimeException('JSON decode error: ' . json_last_error_msg());
+            }
+
+            return [
+                'success' => true,
+                'data' => $arrayResponse,
+                'status_code' => $response->getStatusCode()
+            ];
+
+        } catch (RequestException $e) {
+            // Handle HTTP errors
+            return [
+                'success' => false,
+                'error' => 'Request failed: ' . $e->getMessage(),
+                'status_code' => $e->hasResponse() ? $e->getResponse()->getStatusCode() : null
+            ];
+
+        } catch (Exception $e) {
+            // Handle other errors (like JSON decode errors)
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'status_code' => null
+            ];
+        }
+    }
 }
