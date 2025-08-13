@@ -20,9 +20,9 @@ class ChatController extends Controller
         $previousState = Craft::$app->getRequest()->getParam('state');
         $lambdaResponse = $this->makeLambdaRequest($previousState);
 
-        $skipDelay = Craft::$app->getRequest()->getParam('skipDelay', false);
-        if (!$skipDelay) {
-            sleep(1);
+        $delay = Craft::$app->getRequest()->getParam('delay', false);
+        if (!$delay) {
+            sleep($delay);
         }
 
         return $this->asJson([

@@ -7,7 +7,11 @@ chamberlain.init = () => {
 
     const container = document.querySelector(chamberlain.config.containerElementSelector);
     const template = document.querySelector('#ChamberlainTemplate');
-    container.appendChild(template.content.cloneNode(true));
+    if (location.href.includes('co.ddev.site')) {
+        container.after(template.content.cloneNode(true));
+    } else {
+        container.appendChild(template.content.cloneNode(true));
+    }
     chamberlain.element = document.getElementById('Chamberlain');
 
     // fix some height issues that might occur
@@ -68,9 +72,8 @@ const initiateChat = () => {
         return;
     }
     chamberlain.chatInitiated = true;
-    handleResponse(true);
+    handleResponse(50);
 };
-
 
 const openChatWindow = (userInitiated) => {
     chamberlain.element.classList.remove('closed');
@@ -89,11 +92,12 @@ const closeChatWindow = () => {
 
 // utility functions for chatting
 
-const addMessage = (message, type = 'user') => {
+const addMessage = (message, type = 'user', pauseExecution = false) => {
     return new Promise((resolve) => {
+        resetChatHeight();
         console.log('Adding message:', message, 'of type:', type);
-        if (type === 'user') {
-            handleResponse(chamberlain.state);
+        if (type === 'user' && !pauseExecution) {
+            handleResponse(1000);
         }
         const messageContainer = chamberlain.element.querySelector('[data-chat-window]');
         const messageElement = document.createElement('div');
@@ -106,6 +110,7 @@ const addMessage = (message, type = 'user') => {
         if (type === 'user') {
             messageElement.textContent = message; // For user messages, set immediately
             messageContainer.scrollTop = messageContainer.scrollHeight;
+            resetChatHeight();
             resolve();
         } else {
             typeTextLikeAI(messageElement, message, {
@@ -118,12 +123,14 @@ const addMessage = (message, type = 'user') => {
             }).then(() => {
                 console.log('Message typing completed:', message);
                 messageContainer.scrollTop = messageContainer.scrollHeight;
+                resetChatHeight();
                 resolve();
 
             }).catch(error => {
                 console.error('Error typing message:', error);
                 messageElement.textContent = message; // Fallback to set text directly
                 messageContainer.scrollTop = messageContainer.scrollHeight;
+                resetChatHeight();
                 resolve();
             });
         }
@@ -133,11 +140,49 @@ const addMessage = (message, type = 'user') => {
 
 const setupResponseType = (type = text, options = []) => {
     if (type === 'redirect') {
-        window.location.href = options[0]; // Redirect to the specified URL
+        // delay for 3 seconds before redirecting
+        addMessage(`You will be redirected to ${options[0]} in 3 seconds.`, 'bot');
+        setTimeout(() => {
+            window.location.href = options[0];
+        }, 3000);
+         // Redirect to the specified URL
     } else if (type === 'text') {
         chamberlain.element.querySelector('[data-chat-text-input] input').classList.remove('hidden');
         chamberlain.element.querySelector('[data-chat-text-input] input').disabled = false;
         chamberlain.element.querySelector('[data-chat-text-input] input').focus();
+        resetChatHeight();
+
+    }  else if (type === 'dropdowns') {
+        // put the dropdowns in the chat text input
+        chamberlain.element.querySelector('[data-chat-text-buttons-container]').classList.remove('hidden');
+        const dropdownContainer = chamberlain.element.querySelector('[data-chat-text-buttons]');
+        dropdownContainer.innerHTML = ''; // Clear existing buttons
+
+        options.forEach(option => {
+            const dropdown = document.createElement('select');
+            dropdown.setAttribute('data-chat-text-dropdown', '');
+            const label = document.createElement('label');
+            label.textContent = option.label;
+            label.setAttribute('for', slugify(`dropdown-${option.label}`));
+            dropdown.id = slugify(`dropdown-${option.label}`);
+            option.options.forEach(opt => {
+                const optionElement = document.createElement('option');
+                optionElement.value = opt;
+                optionElement.textContent = opt;
+                dropdown.appendChild(optionElement);
+            });
+            dropdown.addEventListener('change', async () => {
+                const selectedValue = dropdown.value;
+                let pauseExecution = true
+                if (dropdown.id === 'dropdown-number-of-employees') {
+                    pauseExecution = false
+                }
+                await addMessage(selectedValue, 'user', pauseExecution);
+            });
+            dropdownContainer.appendChild(label);
+            dropdownContainer.appendChild(dropdown);
+            resetChatHeight();
+        });
     } else {
         chamberlain.element.querySelector('[data-chat-text-buttons-container]').classList.remove('hidden');
         // Clear any existing buttons
@@ -153,14 +198,13 @@ const setupResponseType = (type = text, options = []) => {
             // add them one at at a time, with a little delay
             setTimeout(() => {
                 chamberlain.element.querySelector('[data-chat-text-buttons]').appendChild(button);
-                const chatInteractionHeight = chamberlain.element.querySelector('[data-chat-interaction]').offsetHeight;
-                chamberlain.element.querySelector('[data-chat-window]').style.marginBottom = `${chatInteractionHeight}px`;
+                resetChatHeight();
             }, variableTime(400, 1500));
         });
     }
 };
 
-const handleResponse = (skipDelay = false) => {
+const handleResponse = (delay = 1000) => {
     lockChatInteraction();
     const url = window.location.protocol + '//' + window.location.host + '/actions/_chamberlain/chat/';
     fetch(url, {
@@ -168,7 +212,7 @@ const handleResponse = (skipDelay = false) => {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({state: chamberlain.state, skipDelay}),
+        body: JSON.stringify({state: chamberlain.state, delay}),
     })
         .then(res => res.json())
         .then(async data => {
@@ -196,22 +240,22 @@ const variableTime = (min, max) => {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
-
 /** AI TYPING STUFF **/
 
 // Enhanced version with token-like chunking (more realistic)
 async function typeTextLikeAI(element, text, options = {}) {
     const {
-        chunkSize = 3,        // Average characters per "token"
-        chunkVariation = 2,   // Variation in chunk size
-        chunkDelay = 50,      // Delay between chunks
+        chunkSize = 3, // Average characters per "token"
+        chunkVariation = 2, // Variation in chunk size
+        chunkDelay = 50, // Delay between chunks
         chunkDelayVariation = 30, // Variation in chunk delay
         cursor = true,
         cursorChar = '|'
     } = options;
 
-    element.textContent = '';
+    element.innerHTML = '';
 
+    // Create cursor if needed
     if (cursor) {
         const cursorSpan = document.createElement('span');
         cursorSpan.className = 'typing-cursor';
@@ -223,8 +267,9 @@ async function typeTextLikeAI(element, text, options = {}) {
         element.appendChild(cursorSpan);
     }
 
-    const textSpan = document.createElement('span');
-    element.insertBefore(textSpan, element.firstChild);
+    // Create container for typed content
+    const contentSpan = document.createElement('span');
+    element.insertBefore(contentSpan, element.firstChild);
 
     // Add CSS for cursor animation
     if (!document.querySelector('#typing-cursor-styles')) {
@@ -239,26 +284,136 @@ async function typeTextLikeAI(element, text, options = {}) {
         document.head.appendChild(style);
     }
 
-    let currentText = '';
-    let i = 0;
+    // Parse HTML and extract text nodes with their parent structure
+    function parseHTMLStructure(htmlString) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlString;
 
-    while (i < text.length) {
-        // Determine chunk size with variation
-        let currentChunkSize = Math.max(1, chunkSize + Math.floor((Math.random() - 0.5) * chunkVariation * 2));
+        const textSegments = [];
 
-        // Add chunk to text
-        let chunk = '';
-        for (let j = 0; j < currentChunkSize && i < text.length; j++) {
-            chunk += text[i];
-            i++;
+        function traverse(node, parentTags = []) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent;
+                if (text.trim()) { // Only add non-empty text
+                    textSegments.push({
+                        text: text,
+                        tags: [...parentTags]
+                    });
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                const tagInfo = {
+                    tagName: node.tagName.toLowerCase(),
+                    attributes: {}
+                };
+
+                // Copy attributes
+                for (let attr of node.attributes) {
+                    tagInfo.attributes[attr.name] = attr.value;
+                }
+
+                const newParentTags = [...parentTags, tagInfo];
+
+                for (let child of node.childNodes) {
+                    traverse(child, newParentTags);
+                }
+            }
         }
 
-        currentText += chunk;
-        textSpan.textContent = currentText;
+        traverse(tempDiv);
+        return textSegments;
+    }
 
-        // Wait before next chunk
-        const delay = chunkDelay + (Math.random() - 0.5) * chunkDelayVariation * 2;
-        await new Promise(resolve => setTimeout(resolve, delay));
+    // Build HTML structure as we type
+    function buildHTMLAtPosition(segments, currentPos) {
+        let html = '';
+        let charCount = 0;
+
+        for (let segment of segments) {
+            const segmentStart = charCount;
+            const segmentEnd = charCount + segment.text.length;
+
+            if (currentPos <= segmentStart) {
+                break; // Haven't reached this segment yet
+            }
+
+            // Open tags
+            for (let tag of segment.tags) {
+                html += `<${tag.tagName}`;
+                for (let [attr, value] of Object.entries(tag.attributes)) {
+                    html += ` ${attr}="${value}"`;
+                }
+                html += '>';
+            }
+
+            // Add text (partial if we're in the middle of this segment)
+            const textToAdd = currentPos >= segmentEnd
+                ? segment.text
+                : segment.text.substring(0, currentPos - segmentStart);
+
+            html += textToAdd;
+
+            // Close tags (in reverse order)
+            for (let i = segment.tags.length - 1; i >= 0; i--) {
+                html += `</${segment.tags[i].tagName}>`;
+            }
+
+            charCount = segmentEnd;
+
+            if (currentPos < segmentEnd) {
+                break; // We're in the middle of this segment
+            }
+        }
+
+        return html;
+    }
+
+    // Check if input contains HTML
+    const hasHTML = /<[^>]+>/.test(text);
+
+    if (!hasHTML) {
+        // Simple text content - use original logic
+        let currentText = '';
+        let i = 0;
+
+        while (i < text.length) {
+            // Determine chunk size with variation
+            let currentChunkSize = Math.max(1, chunkSize + Math.floor((Math.random() - 0.5) * chunkVariation * 2));
+
+            // Add chunk to text
+            let chunk = '';
+            for (let j = 0; j < currentChunkSize && i < text.length; j++) {
+                chunk += text[i];
+                i++;
+            }
+
+            currentText += chunk;
+            contentSpan.textContent = currentText;
+            keepScrolledToBottom(chamberlain.element.querySelector('[data-chat-window]'));
+            // Wait before next chunk
+            const delay = chunkDelay + (Math.random() - 0.5) * chunkDelayVariation * 2;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    } else {
+        // HTML content - parse and type while preserving structure
+        const segments = parseHTMLStructure(text);
+        const totalText = segments.reduce((sum, seg) => sum + seg.text, '');
+        let currentPos = 0;
+
+        while (currentPos < totalText.length) {
+            // Determine chunk size with variation
+            let currentChunkSize = Math.max(1, chunkSize + Math.floor((Math.random() - 0.5) * chunkVariation * 2));
+
+            // Advance position by chunk size
+            currentPos = Math.min(currentPos + currentChunkSize, totalText.length);
+
+            // Build HTML up to current position
+            const htmlAtPosition = buildHTMLAtPosition(segments, currentPos);
+            contentSpan.innerHTML = htmlAtPosition;
+
+            // Wait before next chunk
+            const delay = chunkDelay + (Math.random() - 0.5) * chunkDelayVariation * 2;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
     }
 
     // Remove cursor after completion
@@ -269,5 +424,31 @@ async function typeTextLikeAI(element, text, options = {}) {
                 cursorElement.remove();
             }
         }, 1000);
+    }
+}
+
+const slugify = (str) => {
+    return str
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, '-') // Replace spaces with -
+        .replace(/[^\w\-]+/g, '') // Remove all non-word chars
+        .replace(/\-\-+/g, '-') // Replace multiple - with single -
+        .replace(/^-+/, '') // Trim - from start of text
+        .replace(/-+$/, ''); // Trim - from end of text
+}
+
+const resetChatHeight = () => {
+    const chatInteractionHeight = chamberlain.element.querySelector('[data-chat-interaction]').offsetHeight;
+    chamberlain.element.querySelector('[data-chat-window]').style.marginBottom = `${chatInteractionHeight}px`;
+}
+
+function keepScrolledToBottom(element) {
+    // Check if we're already at or near the bottom (within 5px tolerance)
+    const isAtBottom = element.scrollHeight - element.scrollTop - element.clientHeight <= 5;
+
+    if (isAtBottom) {
+        // Scroll to the very bottom
+        element.scrollTop = element.scrollHeight;
     }
 }
