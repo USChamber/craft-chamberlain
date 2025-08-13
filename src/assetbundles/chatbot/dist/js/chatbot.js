@@ -77,7 +77,6 @@ const initiateChat = () => {
 
 const openChatWindow = (userInitiated) => {
     chamberlain.element.classList.remove('closed');
-    chamberlain.element.querySelector('[data-chat-logo-img]').classList.remove('hidden');
     initiateChat();
     if (userInitiated) {
         chamberlain.userHasInteracted = true;
@@ -86,7 +85,6 @@ const openChatWindow = (userInitiated) => {
 
 const closeChatWindow = () => {
     chamberlain.element.classList.add('closed');
-    chamberlain.element.querySelector('[data-chat-logo-img]').classList.add('hidden');
     chamberlain.userHasInteracted = false; // Reset chat interaction when closed
 };
 
@@ -145,7 +143,7 @@ const setupResponseType = (type = text, options = []) => {
         setTimeout(() => {
             window.location.href = options[0];
         }, 3000);
-         // Redirect to the specified URL
+        // Redirect to the specified URL
     } else if (type === 'text') {
         chamberlain.element.querySelector('[data-chat-response-instruction-text]').innerHTML = 'Type Below'; //Choose a response
         chamberlain.element.querySelector('[data-chat-text-input] input').classList.remove('hidden');
@@ -153,7 +151,7 @@ const setupResponseType = (type = text, options = []) => {
         chamberlain.element.querySelector('[data-chat-text-input] input').focus();
         resetChatHeight();
 
-    }  else if (type === 'dropdowns') {
+    } else if (type === 'dropdowns') {
         chamberlain.element.querySelector('[data-chat-response-instruction-text]').innerHTML = 'Choose a response';
         chamberlain.element.querySelector('[data-chat-text-buttons-container]').classList.remove('hidden');
         const dropdownContainer = chamberlain.element.querySelector('[data-chat-text-buttons]');
@@ -174,7 +172,7 @@ const setupResponseType = (type = text, options = []) => {
             });
             dropdown.addEventListener('change', async () => {
                 const selectedValue = dropdown.value;
-                let pauseExecution = true
+                let pauseExecution = true;
                 if (dropdown.id === 'dropdown-number-of-employees') {
                     pauseExecution = false
                 }
@@ -438,12 +436,12 @@ const slugify = (str) => {
         .replace(/\-\-+/g, '-') // Replace multiple - with single -
         .replace(/^-+/, '') // Trim - from start of text
         .replace(/-+$/, ''); // Trim - from end of text
-}
+};
 
 const resetChatHeight = () => {
     const chatInteractionHeight = chamberlain.element.querySelector('[data-chat-interaction]').offsetHeight;
     chamberlain.element.querySelector('[data-chat-window]').style.marginBottom = `${chatInteractionHeight}px`;
-}
+};
 
 function keepScrolledToBottom(element) {
     // Check if we're already at or near the bottom (within 5px tolerance)
